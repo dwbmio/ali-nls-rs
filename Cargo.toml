@@ -1,0 +1,22 @@
+[workspace]
+include = [
+    "ali-nls-sr", 
+    "ali-nls-drive"
+]
+
+
+[features]
+default = ["full"]
+full = ["sr"]
+sr = ["ali-nls-sr", "ali-nls-drive"]
+
+[package]
+name = "ali-nls"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ali-nls-drive = {path = "./ali-nls-drive", optional=true}
+ali-nls-sr = {path = "./ali-nls-sr", optional=true}
