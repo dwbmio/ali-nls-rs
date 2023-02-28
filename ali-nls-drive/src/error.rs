@@ -1,5 +1,6 @@
 use thiserror::Error;
-
+use tokio_tungstenite::tungstenite::Message;
+use crate::futures_channel::mpsc::TrySendError;
 #[derive(Error, Debug)]
 pub enum ZError {
     
@@ -10,7 +11,10 @@ pub enum ZError {
     StatusError{
         status: String,
         msg: String
-    }
+    },
+
+    #[error("[Drive]sr result status failed!")]
+    SenderError(#[from] TrySendError<Message>)
     // #[error("send file slice failed!")]
     // SendError(#[from] WsError)
 }

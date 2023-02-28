@@ -6,6 +6,7 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     Future, StreamExt,
 };
+use std::fmt::Debug;
 use tokio::net::TcpStream;
 
 pub use tokio;
@@ -45,11 +46,12 @@ impl AliNlsDrive {
 
     pub async fn run<F, T, Fut>(&mut self, receiver: UnboundedReceiver<Message>, handle:F) -> Option<T>
     where
-        F: FnMut(&mut Option<T>, Result<Message, tokio_tungstenite::tungstenite::Error>) -> Fut,
+        T: Debug + Clone,
+        F: FnMut(&mut  Option<T>, Result<Message, tokio_tungstenite::tungstenite::Error>) -> Fut,
         Fut: Future<Output = Option<T>>,
         Self: Sized,
     {
-        //stdin_rx-channel to write
+
         let task_sender = receiver
             .map(Ok)
             .forward(self.writer.as_mut().expect("new ws-client first!"));
@@ -61,11 +63,13 @@ impl AliNlsDrive {
                                                                         .scan(def_ini, handle);
         pin_mut!(task_sender, task_reader);
         //wait once loop
-        let ret = future::select(task_sender,  task_reader.collect::<Vec<T>>()).await;
+        let ret = future::select(task_sender,  task_reader.collect::<Vec<_>>()).await;
         let b = match ret {
             future::Either::Left(_) => {},
             future::Either::Right((r, _)) => {
                 // return Some(r);
+                println!("----right end:{:?}", r);
+                // println!("----right end:{:}", def_ini);
             }
             
         };
