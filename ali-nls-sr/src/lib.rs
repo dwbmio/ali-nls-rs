@@ -71,7 +71,7 @@ impl AliNlsToSr {
     }
 
     fn get_token(&self) -> String {
-        return "a5c722575c434f36a8d5879c46ff4fdc".to_owned();
+        return "14724fae36b6444880df8578037b0892".to_owned();
     }
 
     fn handle_sr_resp(ret: &Value) -> TransStep {
@@ -125,7 +125,7 @@ impl AliNlsToSr {
                 let s = Self::handle_sr_resp(&ret);
                 let _ = match s {
                     TransStep::UploadFile => {
-                        let r = File::open(fpath.join("test").join("nls-sample-16k.wav"))
+                        let r = File::open(fpath)
                             .expect("Not found test file!");
                         let sender_c = ch_sender.clone();
                         let _ = tokio::spawn(async move {
@@ -150,7 +150,7 @@ impl AliNlsToSr {
                     TransStep::Unknown => {}
                     TransStep::TransProcessing => {}
                     TransStep::TransEnd => {
-                        r = ret.get("payload").unwrap().get("words").unwrap().to_string();
+                        r = ret.get("payload").unwrap().to_string();
                         return future::ready(None);
                     }
                 };
@@ -194,14 +194,13 @@ fn test_sr() {
             host: "wss://nls-gateway.cn-shanghai.aliyuncs.com".to_owned(),
         });
         let cur_p = &env::current_dir().unwrap();
-        let f = Path::new(cur_p);
-        let r =
-            File::open(f.join("test").join("nls-sample-16k.wav")).expect("Not found test file!");
-        let ret = c.sr_from_slicefile(f).await;
+        let f = Path::new(cur_p).join("test").join("16000_2_s16le.wav");
+        let ret = c.sr_from_slicefile(f.as_path()).await;
         println!("runtime end");
         match ret {
             Ok(r) => if let Some(r_) = r {
                 println!("json result is :{:?}", r_);
+                
             },
             Err(e) => {
                 println!("[error]{}", e.to_string());
