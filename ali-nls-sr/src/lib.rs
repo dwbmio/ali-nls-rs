@@ -1,7 +1,7 @@
 use ali_nls_drive::{
     self,
     error::ZError,
-    futures_channel::{self, mpsc::UnboundedSender},
+    futures_channel::{self},
     tokio::{self, time::sleep},
     tokio_tungstenite::tungstenite::{http::Uri, Message},
     AliNlsDrive,
@@ -10,10 +10,12 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use std::{
     fs::File,
+    future,
     io::{BufReader, Read},
     path::Path,
     str::FromStr,
-    time::Duration, future,
+    sync::Arc,
+    time::Duration,
 };
 use uuid::Uuid;
 
@@ -21,7 +23,6 @@ pub use ali_nls_drive::config::AliNlsConfig;
 
 pub struct AliNlsToSr {
     drive: AliNlsDrive,
-    task_id: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -31,8 +32,6 @@ struct NlsHeader {
     namespace: String,
     name: String,
     appkey: String,
-
-    
 }
 
 #[derive(Serialize)]
@@ -42,7 +41,7 @@ struct Payload {
     enable_intermediate_result: bool,
     enable_punctuation_prediction: bool,
     enable_inverse_text_normalization: bool,
-    enable_words:bool
+    enable_words: bool,
 }
 
 #[derive(Serialize)]
@@ -54,7 +53,8 @@ struct CmdCont {
 enum TransStep {
     UploadFile,
     TransProcessing,
-    TransEnd,
+    TransOneSentenceEnd,
+    TransAllComplete,
     Unknown,
 }
 
@@ -62,7 +62,6 @@ impl AliNlsToSr {
     pub fn from(config: AliNlsConfig) -> Self {
         Self {
             drive: AliNlsDrive::new(config),
-            task_id: None,
         }
     }
 
@@ -71,7 +70,7 @@ impl AliNlsToSr {
     }
 
     fn get_token(&self) -> String {
-        return "14724fae36b6444880df8578037b0892".to_owned();
+        return "2cf7e5601a07495a8e56edadec2b0e0b".to_owned();
     }
 
     fn handle_sr_resp(ret: &Value) -> TransStep {
@@ -88,7 +87,10 @@ impl AliNlsToSr {
                         return TransStep::UploadFile;
                     }
                     "SentenceEnd" => {
-                        return TransStep::TransEnd;
+                        return TransStep::TransOneSentenceEnd;
+                    }
+                    "TranscriptionCompleted" => {
+                        return TransStep::TransAllComplete;
                     }
                     &_ => {}
                 };
@@ -107,28 +109,34 @@ impl AliNlsToSr {
         //client
         self.drive.new_wscli(uri.to_string()).await;
         //shake params
+        let task_id = Arc::new(Self::gen_taskid().clone());
+        let app_key = Arc::new(self.drive.config.app_key.clone());
         let cmd = Self::gen_req_val(
-            Self::gen_taskid(),
-            self.drive.config.app_key.to_owned(),
+            task_id.as_ref().to_string(),
+            app_key.as_ref().to_string(),
             "StartTranscription".to_owned(),
         );
         let cont = json!(cmd).to_string();
         let _ = &ch_sender.unbounded_send(Message::Text(cont))?;
 
-        let mut r:String = String::from("");
+        let mut r: String = String::from("");
         //listen response
         self.drive
-            .run(ch_receive, |c, msg|  {
+            .run(ch_receive, |_c, msg| {
                 println!("msg is -->>msg={:?}", msg);
                 let ret: Value = serde_json::from_str(msg.unwrap().to_string().as_str())
                     .expect("[ws]return msg convert to json failed!");
                 let s = Self::handle_sr_resp(&ret);
                 let _ = match s {
                     TransStep::UploadFile => {
-                        let r = File::open(fpath)
-                            .expect("Not found test file!");
+                        //chk file open succ?
+                        let r = File::open(fpath).expect("Not found test file!");
+                        //clone outer var
                         let sender_c = ch_sender.clone();
-                        let _ = tokio::spawn(async move {
+                        let task_idr = task_id.as_ref().clone();
+                        let app_keyr = app_key.as_ref().clone();
+                        //slice upload 
+                        let _: tokio::task::JoinHandle<()> = tokio::spawn(async move {
                             let mut reader = BufReader::new(r);
                             const CHUNK_SIZE: usize = 1024 * 10;
                             let mut chunk_con = [0_u8; CHUNK_SIZE];
@@ -145,13 +153,22 @@ impl AliNlsToSr {
                                     break;
                                 }
                             }
+                            let cmd = Self::gen_req_val(
+                                task_idr,
+                                app_keyr,
+                                "StopTranscription".to_owned(),
+                            );
+                            let cont = json!(cmd).to_string();
+                            let _ = &sender_c.unbounded_send(Message::Text(cont));
                         });
                     }
                     TransStep::Unknown => {}
                     TransStep::TransProcessing => {}
-                    TransStep::TransEnd => {
+                    TransStep::TransOneSentenceEnd => {
                         r = ret.get("payload").unwrap().to_string();
-                        return future::ready(None);
+                    }
+                    TransStep::TransAllComplete => {
+                        return future::ready(None)
                     }
                 };
                 future::ready(Some("".to_string()))
@@ -168,15 +185,14 @@ impl AliNlsToSr {
                 namespace: "SpeechTranscriber".to_owned(),
                 name: cmd,
                 appkey: app_key,
-
             },
             payload: Payload {
                 fomrat: "opus".to_owned(),
                 sample_rate: 16000,
                 enable_intermediate_result: false,
                 enable_punctuation_prediction: true,
-                enable_inverse_text_normalization: true,
-                enable_words: true
+                enable_inverse_text_normalization: false,
+                enable_words: true,
             },
         }
     }
@@ -196,16 +212,15 @@ fn test_sr() {
         let cur_p = &env::current_dir().unwrap();
         let f = Path::new(cur_p).join("test").join("16000_2_s16le.wav");
         let ret = c.sr_from_slicefile(f.as_path()).await;
-        println!("runtime end");
         match ret {
-            Ok(r) => if let Some(r_) = r {
-                println!("json result is :{:?}", r_);
-                
-            },
+            Ok(r) => {
+                if let Some(r_) = r {
+                    println!("json result is :{:?}", r_);
+                }
+            }
             Err(e) => {
                 println!("[error]{}", e.to_string());
             }
         }
     });
-    println!("runtime end2");
 }

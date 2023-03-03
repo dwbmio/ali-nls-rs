@@ -48,18 +48,6 @@ impl AliNlsDriveGate {
         Some(final_result)
     }
     
-    fn gen_ak(text: &str) -> String {
-        let binding = text.to_owned();
-        let mid = binding.strip_suffix("\n").unwrap_or_default();
-        let start = SystemTime::now();
-        let time_stamp = start
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis();
-
-        mid.to_string().push_str(time_stamp.to_string().as_str());
-        return mid.to_string();
-    }
 }
 
 
