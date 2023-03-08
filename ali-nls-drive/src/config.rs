@@ -1,10 +1,8 @@
 use std::fmt;
-
 ///
 /// zspeech配置：
 /// * 注册todo
 /// >email:xx@xx.xx
-
 
 #[derive(Debug, Default)]
 pub struct AliNlsConfig {

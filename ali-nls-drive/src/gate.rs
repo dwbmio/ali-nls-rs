@@ -1,5 +1,3 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crypto::{
     aes, blockmodes,
     buffer::{self, BufferResult, ReadBuffer, WriteBuffer},
@@ -48,17 +46,4 @@ impl AliNlsDriveGate {
         Some(final_result)
     }
     
-}
-
-
-#[test]
-fn test_gate() {
-    use std::env;
-    let z_gate = AliNlsDriveGate {
-        fr: env::var("FR").unwrap_or("super_key".to_owned()),
-        uid: "-1".to_owned(),
-        cuid: "-1".to_owned(),
-        domain: "punctuation".to_owned(),
-        ak: "+UCrzbGyHBHphG6l2QHLUSgOMclibsl4H/oCWr/qBGF8dFdP0Qo0bLrEsQkszDOz".to_owned(),
-    };
 }

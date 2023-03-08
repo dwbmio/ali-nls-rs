@@ -6,7 +6,8 @@ use ali_nls_drive::{
     tokio_tungstenite::tungstenite::{http::Uri, Message},
     AliNlsDrive,
 };
-use serde::Serialize;
+use log::info;
+use serde::{Serialize, Deserialize};
 use serde_json::{json, Value};
 use std::{
     fs::File,
@@ -15,7 +16,7 @@ use std::{
     path::Path,
     str::FromStr,
     sync::Arc,
-    time::Duration,
+    time::Duration, env::{self, VarError},
 };
 use uuid::Uuid;
 
@@ -59,7 +60,14 @@ enum TransStep {
 }
 
 impl AliNlsToSr {
+    /// necessary params get from env
+    /// * ALI_TOKEN
     pub fn from(config: AliNlsConfig) -> Self {
+        let ret = dotenv::from_filename(".env_dev");
+        match ret {
+            Ok(v) => info!("found .env_dev file in {}! load env from it!", v.display()),
+            Err(_) => {},
+        };
         Self {
             drive: AliNlsDrive::new(config),
         }
@@ -69,8 +77,8 @@ impl AliNlsToSr {
         return Uuid::new_v4().to_string().replace("-", "");
     }
 
-    fn get_token(&self) -> String {
-        return "2cf7e5601a07495a8e56edadec2b0e0b".to_owned();
+    fn get_token(&self) -> Result<String, VarError> {
+        return env::var("ALI_TOKEN");
     }
 
     fn handle_sr_resp(ret: &Value) -> TransStep {
@@ -103,7 +111,7 @@ impl AliNlsToSr {
     pub async fn sr_from_slicefile(&mut self, fpath: &Path) -> Result<Option<String>, ZError> {
         let (ch_sender, ch_receive) = futures_channel::mpsc::unbounded();
         //url
-        let sr_path = format!("/ws/v1?token={}", self.get_token());
+        let sr_path = format!("/ws/v1?token={}", self.get_token()?);
         let _ = &self.drive.config.host.push_str(&sr_path);
         let uri = Uri::from_str(&self.drive.config.host).unwrap();
         //client
@@ -119,8 +127,10 @@ impl AliNlsToSr {
         let cont = json!(cmd).to_string();
         let _ = &ch_sender.unbounded_send(Message::Text(cont))?;
 
-        let mut r: String = String::from("");
+        
         //listen response
+        let mut ret_sr = SrResult::default();
+        let mut ret_jsonstr: String = String::from("");
         self.drive
             .run(ch_receive, |_c, msg| {
                 println!("msg is -->>msg={:?}", msg);
@@ -165,16 +175,27 @@ impl AliNlsToSr {
                     TransStep::Unknown => {}
                     TransStep::TransProcessing => {}
                     TransStep::TransOneSentenceEnd => {
-                        r = ret.get("payload").unwrap().to_string();
+                        let line_fulltxt = ret.get("payload").unwrap()
+                            .get("result").unwrap().to_string();
+                        let line_words:Vec<Value> = ret.get("payload").unwrap()
+                            .get("words").unwrap().as_array().unwrap().to_vec();
+                        
+                        for word in line_words {
+                            ret_sr.words.push(serde_json::from_value(word).unwrap());    
+                        }
+                        ret_sr.full_txt += &line_fulltxt;
+                        
+                        
                     }
                     TransStep::TransAllComplete => {
+                        ret_jsonstr = serde_json::to_string(&ret_sr).unwrap();
                         return future::ready(None)
                     }
                 };
                 future::ready(Some("".to_string()))
             })
             .await;
-        Ok(Some(r))
+        Ok(Some(ret_jsonstr))
     }
 
     fn gen_req_val(task_id: String, app_key: String, cmd: String) -> CmdCont {
@@ -196,6 +217,22 @@ impl AliNlsToSr {
             },
         }
     }
+}
+
+#[derive(Serialize, Deserialize)]
+struct SrWordResult {
+    #[serde(alias = "startTime")]
+    start_time: i64,
+    #[serde(alias = "endTime")]
+    end_time: i64,
+    text: String,
+}
+
+#[derive(Serialize, Default)]
+struct SrResult {
+    full_txt: String,
+    words: Vec<SrWordResult>,
+    total_time: i64
 }
 
 #[test]
