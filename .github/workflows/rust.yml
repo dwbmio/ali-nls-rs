@@ -27,6 +27,7 @@ jobs:
           path: './ali-nls-drive'
           args: --no-verify
           dry-run: true
+          ignore-unpublished-changes: true
           
     - uses: katyo/publish-crates@v2
       with:
@@ -34,3 +35,4 @@ jobs:
           path: './ali-nls-sr'
           args: --no-verify
           dry-run: true
+          ignore-unpublished-changes: true
