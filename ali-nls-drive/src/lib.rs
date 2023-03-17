@@ -12,7 +12,7 @@ use tokio::net::TcpStream;
 pub use tokio;
 pub use tokio_tungstenite;
 
-use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{connect_async, tungstenite::{Message, self}, MaybeTlsStream, WebSocketStream};
 
 pub mod config;
 pub mod error;
@@ -34,14 +34,15 @@ impl AliNlsDrive {
         }
     }
 
-    pub async fn new_wscli(&mut self, full_uri: String) {
+    pub async fn new_wscli(&mut self, full_uri: String) -> Result<(), tungstenite::error::Error>{
         println!("connect ws to ->>{}", full_uri);
         //connect
-        let (ws_stream, _) = connect_async(full_uri).await.expect("Failed to connect!");
+        let (ws_stream, _) = connect_async(full_uri).await?;
         println!("wss handshake has been succefully completed!");
         let (write, read) = ws_stream.split();
         self.writer = Some(write);
         self.reader = Some(read);
+        Ok(())
     }
 
     pub async fn run<F, T, Fut>(&mut self, receiver: UnboundedReceiver<Message>, handle:F) 

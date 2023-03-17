@@ -115,7 +115,7 @@ impl AliNlsToSr {
         let _ = &self.drive.config.host.push_str(&sr_path);
         let uri = Uri::from_str(&self.drive.config.host).unwrap();
         //client
-        self.drive.new_wscli(uri.to_string()).await;
+        self.drive.new_wscli(uri.to_string()).await?;
         //shake params
         let task_id = Arc::new(Self::gen_taskid().clone());
         let app_key = Arc::new(self.drive.config.app_key.clone());
@@ -179,13 +179,13 @@ impl AliNlsToSr {
                             .get("result").unwrap().to_string();
                         let line_words:Vec<Value> = ret.get("payload").unwrap()
                             .get("words").unwrap().as_array().unwrap().to_vec();
-                        
+                        let sr_time  = ret.get("payload").unwrap()
+                        .get("time").unwrap().as_i64().unwrap();
                         for word in line_words {
                             ret_sr.words.push(serde_json::from_value(word).unwrap());    
                         }
-                        ret_sr.full_txt += &line_fulltxt;
-                        
-                        
+                        ret_sr.full_txt += &line_fulltxt.replace("\"", "");
+                        ret_sr.total_time = sr_time;
                     }
                     TransStep::TransAllComplete => {
                         ret_jsonstr = serde_json::to_string(&ret_sr).unwrap();
