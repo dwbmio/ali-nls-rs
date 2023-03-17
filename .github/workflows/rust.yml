@@ -25,14 +25,10 @@ jobs:
       with:
           registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           path: './ali-nls-drive'
-          args: --no-verify
-          dry-run: true
           ignore-unpublished-changes: true
           
     - uses: katyo/publish-crates@v2
       with:
           registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           path: './ali-nls-sr'
-          args: --no-verify
-          dry-run: true
           ignore-unpublished-changes: true
