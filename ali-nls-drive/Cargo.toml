@@ -2,8 +2,12 @@
 name = "ali-nls-drive"
 version = "0.1.0"
 edition = "2021"
-
+description="ali-nls' drive by havy websocket client :3"
+license = "GPL"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+
 
 [dependencies]
 tokio-tungstenite = { version = "0.18.0", features = ["rustls-tls-native-roots"]}
