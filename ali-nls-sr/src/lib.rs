@@ -7,16 +7,17 @@ use ali_nls_drive::{
     AliNlsDrive,
 };
 use log::info;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
+    env::{self, VarError},
     fs::File,
     future,
     io::{BufReader, Read},
     path::Path,
     str::FromStr,
     sync::Arc,
-    time::Duration, env::{self, VarError},
+    time::Duration,
 };
 use uuid::Uuid;
 
@@ -66,7 +67,7 @@ impl AliNlsToSr {
         let ret = dotenv::from_filename(".env_dev");
         match ret {
             Ok(v) => info!("found .env_dev file in {}! load env from it!", v.display()),
-            Err(_) => {},
+            Err(_) => {}
         };
         Self {
             drive: AliNlsDrive::new(config),
@@ -126,8 +127,6 @@ impl AliNlsToSr {
         );
         let cont = json!(cmd).to_string();
         let _ = &ch_sender.unbounded_send(Message::Text(cont))?;
-
-        
         //listen response
         let mut ret_sr = SrResult::default();
         let mut ret_jsonstr: String = String::from("");
@@ -145,7 +144,7 @@ impl AliNlsToSr {
                         let sender_c = ch_sender.clone();
                         let task_idr = task_id.as_ref().clone();
                         let app_keyr = app_key.as_ref().clone();
-                        //slice upload 
+                        //slice upload
                         let _: tokio::task::JoinHandle<()> = tokio::spawn(async move {
                             let mut reader = BufReader::new(r);
                             const CHUNK_SIZE: usize = 1024 * 10;
@@ -175,21 +174,36 @@ impl AliNlsToSr {
                     TransStep::Unknown => {}
                     TransStep::TransProcessing => {}
                     TransStep::TransOneSentenceEnd => {
-                        let line_fulltxt = ret.get("payload").unwrap()
-                            .get("result").unwrap().to_string();
-                        let line_words:Vec<Value> = ret.get("payload").unwrap()
-                            .get("words").unwrap().as_array().unwrap().to_vec();
-                        let sr_time  = ret.get("payload").unwrap()
-                        .get("time").unwrap().as_i64().unwrap();
+                        let line_fulltxt = ret
+                            .get("payload")
+                            .unwrap()
+                            .get("result")
+                            .unwrap()
+                            .to_string();
+                        let line_words: Vec<Value> = ret
+                            .get("payload")
+                            .unwrap()
+                            .get("words")
+                            .unwrap()
+                            .as_array()
+                            .unwrap()
+                            .to_vec();
+                        let sr_time = ret
+                            .get("payload")
+                            .unwrap()
+                            .get("time")
+                            .unwrap()
+                            .as_i64()
+                            .unwrap();
                         for word in line_words {
-                            ret_sr.words.push(serde_json::from_value(word).unwrap());    
+                            ret_sr.words.push(serde_json::from_value(word).unwrap());
                         }
                         ret_sr.full_txt += &line_fulltxt.replace("\"", "");
                         ret_sr.total_time = sr_time;
                     }
                     TransStep::TransAllComplete => {
                         ret_jsonstr = serde_json::to_string(&ret_sr).unwrap();
-                        return future::ready(None)
+                        return future::ready(None);
                     }
                 };
                 future::ready(Some("".to_string()))
@@ -232,7 +246,7 @@ struct SrWordResult {
 struct SrResult {
     full_txt: String,
     words: Vec<SrWordResult>,
-    total_time: i64
+    total_time: i64,
 }
 
 #[test]

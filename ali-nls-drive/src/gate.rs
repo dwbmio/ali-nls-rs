@@ -45,5 +45,4 @@ impl AliNlsDriveGate {
         }
         Some(final_result)
     }
-    
 }
