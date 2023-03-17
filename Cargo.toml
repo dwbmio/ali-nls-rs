@@ -14,10 +14,13 @@ sr = ["ali-nls-sr", "ali-nls-drive"]
 name = "ali-nls"
 version = "0.1.0"
 edition = "2021"
+description = "Easy ali-nls functional api for fe" 
+
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ali-nls-drive = {path = "./ali-nls-drive", optional=true}
-ali-nls-sr = {path = "./ali-nls-sr", optional=true}
+ali-nls-drive = {version="0.1.0", path = "./ali-nls-drive", optional=true}
+ali-nls-sr = {version="0.1.0", path = "./ali-nls-sr", optional=true}
 
