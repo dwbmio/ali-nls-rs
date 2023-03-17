@@ -1,6 +1,6 @@
 [package]
 name = "ali-nls-drive"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description="ali-nls' drive by havy websocket client :3"
 license = "MIT OR Apache-2.0"
