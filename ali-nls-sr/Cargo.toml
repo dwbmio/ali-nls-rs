@@ -4,7 +4,9 @@ version = "0.1.2"
 edition = "2021"
 description="Easy ali-nls functional api for fe"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/dwbmio/ali-nls-rs.git"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
 
 [dependencies]
 ali-nls-drive = { version = "0.1" }
