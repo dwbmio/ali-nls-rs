@@ -1,16 +1,13 @@
-use ali_nls_drive::{
-    self,
-    error::ZError,
+use ali_nls_drive::{ 
+    error::ZError, 
     futures_channel::{self},
     tokio::{self, time::sleep},
     tokio_tungstenite::tungstenite::{http::Uri, Message},
-    AliNlsDrive,
+    AliNlsDrive, config::{NlsHeader, CmdCont},
 };
-use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
-    env::{self, VarError},
     fs::File,
     future,
     io::{BufReader, Read},
@@ -20,20 +17,10 @@ use std::{
     time::Duration,
 };
 use uuid::Uuid;
-
 pub use ali_nls_drive::config::AliNlsConfig;
 
 pub struct AliNlsToSr {
     drive: AliNlsDrive,
-}
-
-#[derive(Serialize)]
-struct NlsHeader {
-    message_id: String,
-    task_id: String,
-    namespace: String,
-    name: String,
-    appkey: String,
 }
 
 #[derive(Serialize)]
@@ -46,11 +33,6 @@ struct Payload {
     enable_words: bool,
 }
 
-#[derive(Serialize)]
-struct CmdCont {
-    header: NlsHeader,
-    payload: Payload,
-}
 #[derive(PartialEq)]
 enum TransStep {
     UploadFile,
@@ -107,7 +89,7 @@ impl AliNlsToSr {
         //shake params
         let task_id = Arc::new(Self::gen_taskid().clone());
         let app_key = Arc::new(self.drive.config.app_key.clone());
-        let cmd = Self::gen_req_val(
+        let cmd = Self::gen_req_val::<Payload>(
             task_id.as_ref().to_string(),
             app_key.as_ref().to_string(),
             "StartTranscription".to_owned(),
@@ -149,7 +131,7 @@ impl AliNlsToSr {
                                     break;
                                 }
                             }
-                            let cmd = Self::gen_req_val(
+                            let cmd = Self::gen_req_val::<Payload>(
                                 task_idr,
                                 app_keyr,
                                 "StopTranscription".to_owned(),
@@ -199,7 +181,7 @@ impl AliNlsToSr {
         Ok(Some(ret_jsonstr))
     }
 
-    fn gen_req_val(task_id: String, app_key: String, cmd: String) -> CmdCont {
+    fn gen_req_val<T>(task_id: String, app_key: String, cmd: String) -> CmdCont<Payload> {
         CmdCont {
             header: NlsHeader {
                 message_id: Uuid::new_v4().to_string().replace("-", ""),

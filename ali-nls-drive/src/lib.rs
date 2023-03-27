@@ -9,8 +9,6 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
     Future, StreamExt,
 };
-
-use log::info;
 use std::{fmt::Debug, env::VarError};
 use tokio::net::TcpStream;
 
@@ -19,7 +17,7 @@ pub use tokio_tungstenite;
 
 use tokio_tungstenite::{
     connect_async,
-    tungstenite::{self, Message},
+    tungstenite::{Message},
     MaybeTlsStream, WebSocketStream,
 };
 
@@ -54,6 +52,7 @@ impl AliNlsDrive {
 
     pub async fn new_wscli(&mut self, mut full_uri: String) -> Result<(), ZError> {
         full_uri.push_str(format!("?token={}", &self.get_token()?).as_str());
+        println!("connet uri is {}", full_uri);
         //connect
         let (ws_stream, _) = connect_async(full_uri).await?;
         println!("wss handshake has been succefully completed!");

@@ -1,4 +1,6 @@
 use std::fmt;
+
+use serde::Serialize;
 ///
 /// zspeech配置：
 /// * 注册todo
@@ -8,6 +10,21 @@ use std::fmt;
 pub struct AliNlsConfig {
     pub app_key: String,
     pub host: String,
+}
+
+#[derive(Serialize)]
+pub struct NlsHeader {
+    pub message_id: String,
+    pub task_id: String,
+    pub namespace: String,
+    pub name: String,
+    pub appkey: String,
+}
+
+#[derive(Serialize)]
+pub struct CmdCont<T> {
+    pub header: NlsHeader,
+    pub payload: T,
 }
 
 impl fmt::Display for AliNlsConfig {

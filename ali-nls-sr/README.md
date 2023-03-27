@@ -1,4 +1,4 @@
-#### Overview
+### Overview
 
 rust api for 
 
@@ -6,7 +6,7 @@ rust api for
 
 <mark>Attention:Implementation by test websocket lib, still in primary version</mark>
 
-#### Usage
+### Usage
 
 ```rust
 let mut c = AliNlsToSr::from(AliNlsConfig {
@@ -30,6 +30,9 @@ match ret {
 
 
 
-#### Test
+### Test
 
-\> cargo test --package ali-nls-sr --lib -- test_sr --exact --nocapture 
+#### sr
+> cargo test --package ali-nls-sr --lib -- test_sr --exact --nocapture 
+#### ss 
+> cargo test --package ali-nls-ss --lib -- test_ss --exact --nocapture

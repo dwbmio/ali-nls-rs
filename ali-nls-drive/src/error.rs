@@ -14,9 +14,16 @@ pub enum ZError {
     #[error("ali-nls token get empty!set a config-file named *.env* in proj's root path")]
     AuthError(#[from] VarError),
 
-    #[error("connect to ali-nls server failed!always because of the `ALI_TOKEN` not correct")]
+    #[error(transparent)]
     WsConnectError(#[from] tokio_tungstenite::tungstenite::Error),
 
     #[error("sr result status failed!")]
     SenderError(#[from] TrySendError<Message>),
+
+
+    #[error("io error! {0}")]
+    IoError(#[from] std::io::Error),
+
+    #[error("zerror! {0}")]
+    CustomError(String),
 }
