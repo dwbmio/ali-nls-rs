@@ -1,14 +1,16 @@
 [workspace]
 include = [
+    "ali-nls-drive", 
     "ali-nls-sr", 
-    "ali-nls-drive"
+    "ali-nls-ss"
 ]
 
 
 [features]
 default = ["full"]
-full = ["sr"]
+full = ["sr", "ss"]
 sr = ["ali-nls-sr", "ali-nls-drive"]
+ss = ["ali-nls-ss", "ali-nls-drive"]
 
 [package]
 name = "ali-nls"
@@ -21,6 +23,7 @@ description = "Easy ali-nls functional api for fe"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ali-nls-drive = {version="0.1.0", path = "./ali-nls-drive", optional=true}
-ali-nls-sr = {version="0.1.0", path = "./ali-nls-sr", optional=true}
+ali-nls-drive = {version="0.1.2", path = "./ali-nls-drive", optional=true}
+ali-nls-sr = {version="0.1.2", path = "./ali-nls-sr", optional=true}
+ali-nls-ss = {version="0.1.0", path = "./ali-nls-ss", optional=true}
 

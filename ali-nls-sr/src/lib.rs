@@ -62,13 +62,7 @@ enum TransStep {
 
 impl AliNlsToSr {
     /// necessary params get from env
-    /// * ALI_TOKEN
     pub fn from(config: AliNlsConfig) -> Self {
-        let ret = dotenv::from_filename(".env_dev");
-        match ret {
-            Ok(v) => info!("found .env_dev file in {}! load env from it!", v.display()),
-            Err(_) => {}
-        };
         Self {
             drive: AliNlsDrive::new(config),
         }
@@ -76,10 +70,6 @@ impl AliNlsToSr {
 
     fn gen_taskid() -> String {
         return Uuid::new_v4().to_string().replace("-", "");
-    }
-
-    fn get_token(&self) -> Result<String, VarError> {
-        return env::var("ALI_TOKEN");
     }
 
     fn handle_sr_resp(ret: &Value) -> TransStep {
@@ -106,14 +96,11 @@ impl AliNlsToSr {
                 return TransStep::Unknown;
             }
         }
-        return TransStep::Unknown;
+        return TransStep::Unknown; 
     }
 
     pub async fn sr_from_slicefile(&mut self, fpath: &Path) -> Result<Option<String>, ZError> {
         let (ch_sender, ch_receive) = futures_channel::mpsc::unbounded();
-        //url
-        let sr_path = format!("/ws/v1?token={}", self.get_token()?);
-        let _ = &self.drive.config.host.push_str(&sr_path);
         let uri = Uri::from_str(&self.drive.config.host).unwrap();
         //client
         self.drive.new_wscli(uri.to_string()).await?;
@@ -258,7 +245,7 @@ fn test_sr() {
     Runtime::new().unwrap().block_on(async {
         let mut c = AliNlsToSr::from(AliNlsConfig {
             app_key: "FPwxKxga3cQ6B2Fs".to_owned(),
-            host: "wss://nls-gateway.cn-shanghai.aliyuncs.com".to_owned(),
+            host: "wss://nls-gateway.aliyuncs.com/ws/v1".to_owned(),
         });
         let cur_p = &env::current_dir().unwrap();
         let f = Path::new(cur_p).join("test").join("16000_2_s16le.wav");
